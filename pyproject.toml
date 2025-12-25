@@ -1,6 +1,6 @@
 [project]
 name = "nonebot-plugin-maimaimonitor"
-version = "1.9.0"
+version = "1.9.1"
 description = "A NoneBot2 plugin to report maimai server status."
 authors = [
     { name = "Chongxi3555" }
