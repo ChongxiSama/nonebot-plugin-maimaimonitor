@@ -5,6 +5,7 @@ from nonebot import on_command, get_driver, require, get_plugin_config
 from nonebot.matcher import Matcher
 from nonebot.adapters.onebot.v11 import Bot, Event, Message # V11 imports
 from nonebot.params import CommandArg
+import asyncio # New import
 from nonebot import get_plugin_config
 from .config import Config
 
@@ -21,7 +22,7 @@ reporter = MaimaiReporter(
 report_cache: defaultdict[int, list[int]] = defaultdict(list)
 cache_lock = Lock()
 
-report_matcher = on_command("report", aliases={"上报"}, priority=5, block=True)
+report_matcher = on_command("report", aliases={"上报"}, priority=5, block=False)
 
 @report_matcher.handle()
 async def handle_report(bot: Bot, event: Event, args: Message = CommandArg()):
@@ -90,7 +91,8 @@ async def send_aggregated_reports():
 
     try:
         print("--- Sending aggregated bot report... ---")
-        reporter.send_report(final_payload, custom_display_name=config.maimai_bot_display_name)
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, reporter.send_report, final_payload, config.maimai_bot_display_name)
     except Exception as e:
         print(f"Error sending aggregated report: {e}")
 
