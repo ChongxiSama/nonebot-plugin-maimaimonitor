@@ -97,7 +97,7 @@ nonebot.load_plugin("nonebot_plugin_maimaimonitor")
 
 ## 主动 Dashboard 渲染
 
-未来将会支持直接将前端渲染为SVG并转化为图片，当前仍需要截取 `https://mai.chusongxi.us/?share=true&dark=auto`
+未来将会支持直接将前端渲染为SVG并转化为图片，当前仍需要截取 `https://mai.chongxi.us/?share=true&dark=auto`
 
 `share` 为 bot 特殊优化的页面，`dark` 用于切换深色模式，`auto` 会自动根据时间切换。
 
