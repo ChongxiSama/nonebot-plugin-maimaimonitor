@@ -10,7 +10,7 @@ __plugin_meta__ = PluginMetadata(
     description="一个检测舞萌服务器似了没的bot插件，支持上报各种信息",
     usage="发送`/report help`即可查看菜单",
     type="application",
-    homepage="https://github.com/Chongxi3555/nonebot-plugin-maimaimonitor",
+    homepage="https://github.com/ChongxiSama/nonebot-plugin-maimaimonitor",
     supported_adapters={"~onebot.v11"},
     extra={
         "author": "Chongxi3555",
