@@ -1,8 +1,7 @@
-from pydantic_settings import BaseSettings
-from pydantic import ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Dict, Optional
 
-class Config(BaseSettings):
+class Config(BaseModel):
     model_config = ConfigDict(extra='ignore')
     
 

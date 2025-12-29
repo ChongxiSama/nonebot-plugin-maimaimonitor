@@ -2,7 +2,7 @@ import hmac
 import hashlib
 import time
 import json
-import requests
+import httpx
 
 class MaimaiReporter:
     def __init__(self, client_id: str, private_key: str, worker_url: str):
@@ -19,7 +19,7 @@ class MaimaiReporter:
     def _generate_sha256_hash(self, data: str) -> str:
         return hashlib.sha256(data.encode('utf-8')).hexdigest()
 
-    def send_report(self, report_data: dict or list, custom_display_name: str = None) -> requests.Response:
+    async def send_report(self, report_data: dict or list, custom_display_name: str = None) -> httpx.Response:
         timestamp = str(int(time.time() * 1000))
 
         report_data_list = [report_data] if not isinstance(report_data, list) else report_data
@@ -48,6 +48,7 @@ class MaimaiReporter:
         print(f"Headers: {headers}")
         print(f"Body: {raw_request_body}")
 
-        response = requests.post(f"{self.worker_url}/bot-post", headers=headers, data=raw_request_body.encode('utf-8'))
-        response.raise_for_status()
-        return response
+        async with httpx.AsyncClient() as client:
+            response = await client.post(f"{self.worker_url}/bot-post", headers=headers, data=raw_request_body.encode('utf-8'))
+            response.raise_for_status()
+            return response

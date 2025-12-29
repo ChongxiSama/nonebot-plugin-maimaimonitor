@@ -1,14 +1,23 @@
 from asyncio import Lock
 from collections import defaultdict
-from nonebot import on_command, get_driver, require, get_plugin_config
+from nonebot import on_command, get_driver, require
 from nonebot.matcher import Matcher
 from nonebot.adapters.onebot.v11 import Bot, Event, Message
 from nonebot.params import CommandArg
 import asyncio
-from nonebot import get_plugin_config
+from typing import Any # Added import for 'Any'
 from .config import Config
 
-config = get_plugin_config(Config)
+driver = get_driver()
+global_config = driver.config
+
+config = Config(
+    maimai_bot_client_id=getattr(global_config, "maimai_bot_client_id", None),
+    maimai_bot_private_key=getattr(global_config, "maimai_bot_private_key", None),
+    maimai_bot_display_name=getattr(global_config, "maimai_bot_display_name", None),
+    maimai_worker_url=getattr(global_config, "maimai_worker_url", "https://maiapi.chongxi.us"),
+    command_aliases=getattr(global_config, "command_aliases", {}),
+)
 from .client import MaimaiReporter
 from .constants import get_help_menu, REPORT_MAPPING, ReportCode
 
@@ -141,8 +150,7 @@ async def send_aggregated_reports():
 
     try:
         print("--- Sending aggregated bot report... ---")
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, reporter.send_report, final_payload, config.maimai_bot_display_name)
+        await reporter.send_report(final_payload, config.maimai_bot_display_name)
     except Exception as e:
         print(f"Error sending aggregated report: {e}")
 
