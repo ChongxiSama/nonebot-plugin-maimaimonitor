@@ -7,8 +7,9 @@
 - [x] 状态上报: 通过简单的聊天指令（如 `/report 断网`）上报服务器状态
 - [x] 数据聚合: 自动缓存用户上报数据，每 30 秒打包发送至后端 API
 - [x] 自定义命令别名: 允许用户在配置中定义简洁的命令别名 映射到复杂的报告指令
-- [ ] 直接抓取页面并渲染
+- [x] 直接抓取页面并渲染
 
+需要新的功能欢迎在issue提出
 ## 安装
 
 你可以通过 NoneBot 的脚手架工具 `nb-cli` 安装：
@@ -29,7 +30,9 @@ pip install nonebot-plugin-maimaimonitor
 
 ### 获取凭证
 
-为了向后端 API 发送数据，你需要一个 `ClientID` 和 `PRIVATE_KEY`。请联系 email:qwq@chongxi.us 获取。`ClientID`由您提供，建议为数字
+为了向后端 API 发送数据，你需要一个 `ClientID` 和 `PRIVATE_KEY`。请联系 email:qwq@chongxi.us 获取。`ClientID`由您提供，建议为数字（这个不是机台狗号）
+
+获取服务器页面则不要求bot私钥校验
 
 **请妥善保管你的 `PRIVATE_KEY`，不要泄露给任何人。**
 
@@ -94,10 +97,21 @@ nonebot.load_plugin("nonebot_plugin_maimaimonitor")
 **部分命令示例**:
 *   `/report 断网` 或 配置的别名（如 `炸了`）: 上报一次机台网络断开事件
 *   `/report 罚站 [秒数]` 或 配置的别名（如 `罚站五分钟`）: 上报玩家罚站时长，例如 `/report 罚站 300` 表示罚站 5 分钟
+*   `/net` 查看服务器状态 Dashboard
 
 ## 主动 Dashboard 渲染
 
-未来将会支持直接将前端渲染为SVG并转化为图片，当前仍需要截取 `https://mai.chongxi.us/?share=true&dark=auto`
+~~未来将会支持直接将前端渲染为SVG并转化为图片~~
+
+现提供两种方式获取本站页面可视化，获取 Dashboard 信息不要求密钥校验，在Telegram等支持预览图的软件中，发送`https://mai.chongxi.us/`也可以直接产出服务器状态的预览图片
+
+1. 已集成`/net`命令，使用该命令直接获取由SVG绘制的图片，轻量快速，缺点是查看效果不如原GUI ~~咱的绘图功底也就这样了~~
+
+`dark`参数有效，不设置默认auto
+
+效果等同于 `curl -o status.png "https://mai.chongxi.us/api/og" `
+
+2. 直接截取，您可以使用无头浏览器直接截`https://mai.chongxi.us/?share=true&dark=auto`
 
 `share` 为 bot 特殊优化的页面，`dark` 用于切换深色模式，`auto` 会自动根据时间切换。
 

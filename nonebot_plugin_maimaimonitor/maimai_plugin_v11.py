@@ -1,11 +1,15 @@
 from asyncio import Lock
 from collections import defaultdict
-from nonebot import on_command, get_driver, require
+from nonebot import on_command, on_message, get_driver, require
+from nonebot.rule import Rule
 from nonebot.matcher import Matcher
-from nonebot.adapters.onebot.v11 import Bot, Event, Message
+from nonebot.adapters.onebot.v11 import Bot, Event, Message, MessageSegment
 from nonebot.params import CommandArg
+import httpx
+import time
+from pathlib import Path
 import asyncio
-from typing import Any # Added import for 'Any'
+from typing import Any
 from .config import Config
 
 driver = get_driver()
@@ -19,7 +23,7 @@ config = Config(
     command_aliases=getattr(global_config, "command_aliases", {}),
 )
 from .client import MaimaiReporter
-from .constants import get_help_menu, REPORT_MAPPING, ReportCode
+from .constants import get_help_menu, REPORT_MAPPING, ReportCode, OG_API_URL
 
 reporter = MaimaiReporter(
     client_id=config.maimai_bot_client_id,
@@ -31,6 +35,41 @@ report_cache: defaultdict[int, list[int]] = defaultdict(list)
 cache_lock = Lock()
 
 report_matcher = on_command("report", aliases={"上报"}, priority=5, block=False)
+net_matcher = on_command("net", priority=5, block=False)
+
+DIRECT_ALIASES = {"网咋样", "华立服务器死了吗", "炸了吗"}
+
+async def _direct_alias_rule(event: Event) -> bool:
+    return event.get_plaintext().strip() in DIRECT_ALIASES
+
+net_direct_matcher = on_message(rule=Rule(_direct_alias_rule), priority=5, block=False)
+
+CACHE_DIR = Path("data/maimai_monitor")
+CACHE_FILE = CACHE_DIR / "status.png"
+CACHE_TTL = 60
+
+
+@net_matcher.handle()
+@net_direct_matcher.handle()
+async def handle_net(matcher: Matcher):
+    if CACHE_FILE.exists():
+        if time.time() - CACHE_FILE.stat().st_mtime < CACHE_TTL:
+            await matcher.finish(MessageSegment.image(f"file://{CACHE_FILE.absolute()}"))
+        else:
+            CACHE_FILE.unlink(missing_ok=True)
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(OG_API_URL, timeout=30.0)
+            if response.status_code == 200:
+                CACHE_DIR.mkdir(parents=True, exist_ok=True)
+                CACHE_FILE.write_bytes(response.content)
+                await matcher.finish(MessageSegment.image(f"file://{CACHE_FILE.absolute()}"))
+            else:
+                await matcher.finish(f"获取状态图失败 (HTTP {response.status_code})，请稍后再试。")
+    except Exception as e:
+        await matcher.finish(f"获取状态图时发生错误: {str(e)}")
+
 
 @report_matcher.handle()
 async def handle_report(bot: Bot, event: Event, args: Message = CommandArg()):
@@ -149,10 +188,9 @@ async def send_aggregated_reports():
         return
 
     try:
-        print("--- Sending aggregated bot report... ---")
         await reporter.send_report(final_payload, config.maimai_bot_display_name)
     except Exception as e:
-        print(f"Error sending aggregated report: {e}")
+        pass
 
 
 def create_dynamic_alias_matcher(trigger_cmd: str, target_cmd_string: str):

@@ -9,6 +9,8 @@ class ReportCode(IntEnum):
     ACC_SCAN = 203
     WAIT_TIME = 300
 
+OG_API_URL = "https://mai.chongxi.us/api/og"
+
 REPORT_MAPPING = {
     "1": (ReportCode.ERR_NET_LOST, "断网"),
     "断网": (ReportCode.ERR_NET_LOST, "断网"),
@@ -54,5 +56,7 @@ def get_help_menu():
 /report 罚站 120
 /上报 1
 /上报 断网
-/上报 罚站 120"""
+/上报 罚站 120
+
+/net 或 /和网 : 查看当前服务器状态图"""
     return menu
