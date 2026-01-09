@@ -10,4 +10,5 @@ class Config(BaseModel):
     maimai_bot_display_name: Optional[str] = None
 
     maimai_worker_url: str = "https://maiapi.chongxi.us"
+    maimai_data_dir: Optional[str] = None
     command_aliases: Dict[str, str] = {}

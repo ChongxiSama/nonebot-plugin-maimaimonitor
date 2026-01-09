@@ -9,6 +9,7 @@ import httpx
 import time
 from pathlib import Path
 import asyncio
+import traceback
 from typing import Any
 from .config import Config
 
@@ -20,6 +21,7 @@ config = Config(
     maimai_bot_private_key=getattr(global_config, "maimai_bot_private_key", None),
     maimai_bot_display_name=getattr(global_config, "maimai_bot_display_name", None),
     maimai_worker_url=getattr(global_config, "maimai_worker_url", "https://maiapi.chongxi.us"),
+    maimai_data_dir=getattr(global_config, "maimai_data_dir", None),
     command_aliases=getattr(global_config, "command_aliases", {}),
 )
 from .client import MaimaiReporter
@@ -44,31 +46,59 @@ async def _direct_alias_rule(event: Event) -> bool:
 
 net_direct_matcher = on_message(rule=Rule(_direct_alias_rule), priority=5, block=False)
 
-CACHE_DIR = Path("data/maimai_monitor")
-CACHE_FILE = CACHE_DIR / "status.png"
+def get_cache_paths():
+    if config.maimai_data_dir:
+        base_dir = Path(config.maimai_data_dir)
+    else:
+        base_dir = Path.cwd() / "data" / "maimai_monitor"
+    
+    return base_dir, base_dir / "status.png"
+
 CACHE_TTL = 60
 
 
 @net_matcher.handle()
 @net_direct_matcher.handle()
 async def handle_net(matcher: Matcher):
-    if CACHE_FILE.exists():
-        if time.time() - CACHE_FILE.stat().st_mtime < CACHE_TTL:
-            await matcher.finish(MessageSegment.image(f"file://{CACHE_FILE.absolute()}"))
-        else:
-            CACHE_FILE.unlink(missing_ok=True)
+    cache_dir, cache_file = get_cache_paths()
+
+    if cache_file.exists():
+        if time.time() - cache_file.stat().st_mtime < CACHE_TTL:
+            try:
+                await matcher.send(MessageSegment.image(cache_file.read_bytes()))
+                await matcher.finish()
+            except Exception:
+                cache_file.unlink(missing_ok=True)
 
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(OG_API_URL, timeout=30.0)
             if response.status_code == 200:
-                CACHE_DIR.mkdir(parents=True, exist_ok=True)
-                CACHE_FILE.write_bytes(response.content)
-                await matcher.finish(MessageSegment.image(f"file://{CACHE_FILE.absolute()}"))
+                try:
+                    cache_dir.mkdir(parents=True, exist_ok=True)
+                    cache_file.write_bytes(response.content)
+                except Exception:
+                    pass
+
+                try:
+                    await matcher.send(MessageSegment.image(response.content))
+                except Exception:
+                    try:
+                        await matcher.send(MessageSegment.image(OG_API_URL))
+                    except Exception as e:
+                        raise e
+                
+                await matcher.finish()
             else:
-                await matcher.finish(f"获取状态图失败 (HTTP {response.status_code})，请稍后再试。")
+                await matcher.finish(f"获取状态图失败 (HTTP {response.status_code})\nURL: {OG_API_URL}\n请检查网络连接或 API 状态。")
     except Exception as e:
-        await matcher.finish(f"获取状态图时发生错误: {str(e)}")
+        if isinstance(e, Matcher.finish) or "FinishedException" in type(e).__name__:
+            raise e
+        
+        error_type = type(e).__name__
+        error_details = str(e)
+        tb = traceback.format_exc()
+        await matcher.finish(f"建议先到https://mai.chongxi.us/查看\n\n获取状态图时发生异常!\n类型: {error_type}\n原因: {error_details}\n\nDebug Info:\n{tb[:300]}...")
 
 
 @report_matcher.handle()
