@@ -16,7 +16,7 @@ driver = get_driver()
 global_config = driver.config
 
 config = Config(
-    maimai_bot_client_id=getattr(global_config, "maimai_bot_client_id", None),
+    maimai_bot_client_id=str(getattr(global_config, "maimai_bot_client_id", None)),
     maimai_bot_private_key=getattr(global_config, "maimai_bot_private_key", None),
     maimai_bot_display_name=getattr(global_config, "maimai_bot_display_name", None),
     maimai_worker_url=getattr(global_config, "maimai_worker_url", "https://maiapi.chongxi.us"),
