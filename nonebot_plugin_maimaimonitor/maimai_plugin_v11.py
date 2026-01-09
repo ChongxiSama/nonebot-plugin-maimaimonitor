@@ -67,7 +67,9 @@ async def handle_net(matcher: Matcher):
             try:
                 await matcher.send(MessageSegment.image(cache_file.read_bytes()))
                 await matcher.finish()
-            except Exception:
+            except Exception as e:
+                if "FinishedException" in type(e).__name__:
+                    raise e
                 cache_file.unlink(missing_ok=True)
 
     try:
@@ -92,7 +94,7 @@ async def handle_net(matcher: Matcher):
             else:
                 await matcher.finish(f"获取状态图失败 (HTTP {response.status_code})\nURL: {OG_API_URL}\n请检查网络连接或 API 状态。")
     except Exception as e:
-        if isinstance(e, Matcher.finish) or "FinishedException" in type(e).__name__:
+        if "FinishedException" in type(e).__name__:
             raise e
         
         error_type = type(e).__name__
