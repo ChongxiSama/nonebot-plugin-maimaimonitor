@@ -3,6 +3,7 @@ from collections import defaultdict
 from nonebot import on_command, on_message, get_driver, require
 from nonebot.rule import Rule
 from nonebot.matcher import Matcher
+from nonebot.exception import FinishedException
 from nonebot.adapters.onebot.v11 import Bot, Event, Message, MessageSegment
 from nonebot.params import CommandArg
 import httpx
@@ -65,11 +66,12 @@ async def handle_net(matcher: Matcher):
     if cache_file.exists():
         if time.time() - cache_file.stat().st_mtime < CACHE_TTL:
             try:
-                await matcher.send(MessageSegment.image(cache_file.read_bytes()))
+                img_data = cache_file.read_bytes()
+                await matcher.send(MessageSegment.image(img_data))
                 await matcher.finish()
-            except Exception as e:
-                if "FinishedException" in type(e).__name__:
-                    raise e
+            except FinishedException:
+                raise
+            except Exception:
                 cache_file.unlink(missing_ok=True)
 
     try:
@@ -87,16 +89,17 @@ async def handle_net(matcher: Matcher):
                 except Exception:
                     try:
                         await matcher.send(MessageSegment.image(OG_API_URL))
-                    except Exception as e:
-                        raise e
+                    except FinishedException:
+                        raise
+                    except Exception:
+                        pass
                 
                 await matcher.finish()
             else:
                 await matcher.finish(f"获取状态图失败 (HTTP {response.status_code})\nURL: {OG_API_URL}\n请检查网络连接或 API 状态。")
+    except FinishedException:
+        raise
     except Exception as e:
-        if "FinishedException" in type(e).__name__:
-            raise e
-        
         error_type = type(e).__name__
         error_details = str(e)
         tb = traceback.format_exc()
